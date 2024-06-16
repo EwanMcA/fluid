@@ -1,26 +1,14 @@
-import { useRef, useEffect } from 'react';
+import { useEffect } from 'react';
 
-import { draw } from './Utils';
+import { draw } from './utils';
 
-const Canvas = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
+const Canvas = ({ width, height, canvasRef }) => {
   useEffect(() => {
     const resizeCanvas = () => {
       const canvas = canvasRef.current;
       if (canvas) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-      }
-    }
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      const height = canvasRef.current.height;
-      const width = canvasRef.current.width;
-
-      if (ctx) {
-        const imageData = new Array( height * width * 4).fill(0).map(() => Math.random() * 255);
-        draw(canvasRef.current, ctx, new ImageData(new Uint8ClampedArray(imageData), width, height));
       }
     }
 
@@ -30,7 +18,7 @@ const Canvas = () => {
     }
   }, []);
 
-  return <canvas id="canvas" ref={canvasRef} width={1400} height={750} />;
+  return <canvas id="canvas" ref={canvasRef} width={width} height={height} />;
 };
 
 export default Canvas;

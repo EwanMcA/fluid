@@ -1,10 +1,6 @@
 import { useRef, useEffect } from 'react';
 
-export const draw = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#555';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-};
+import { draw } from './Utils';
 
 const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -19,8 +15,12 @@ const Canvas = () => {
     }
     if (canvasRef.current) {
       const ctx = canvasRef.current.getContext('2d');
+      const height = canvasRef.current.height;
+      const width = canvasRef.current.width;
+
       if (ctx) {
-        draw(canvasRef.current, ctx);
+        const imageData = new Array( height * width * 4).fill(0).map(() => Math.random() * 255);
+        draw(canvasRef.current, ctx, new ImageData(new Uint8ClampedArray(imageData), width, height));
       }
     }
 

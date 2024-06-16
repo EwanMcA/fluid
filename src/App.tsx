@@ -18,10 +18,10 @@ function App() {
     const ctx = canvasRef.current?.getContext('2d');
     const simState: SimulationState = {
       width: WIDTH,
-      height: HEIGHT * 4,
-      dye: new Array(WIDTH).fill(0).map(() => new Float32Array(HEIGHT * 4)),
-      density: new Array(WIDTH).fill(0).map(() => new Float32Array(HEIGHT * 4)),
-      velocity: new Array(WIDTH).fill(0).map(() => new Float32Array(HEIGHT * 4)),
+      height: HEIGHT,
+      dye: new Array(WIDTH).fill(0).map(() => new Float32Array(HEIGHT)),
+      density: new Array(WIDTH).fill(0).map(() => new Float32Array(HEIGHT)),
+      velocity: new Array(WIDTH).fill(0).map(() => new Float32Array(HEIGHT)),
     }
       
     setInterval(() => {

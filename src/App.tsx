@@ -1,14 +1,13 @@
 import { useEffect, useRef} from 'react'
 import './App.css'
 
-import { SimulationState } from './types'
+import Simulation from './simulation'
 
-import simulate from './simulation'
 import { draw } from './utils'
 import Canvas from './Canvas'
 
-const WIDTH = 1500;
-const HEIGHT = 750;
+const WIDTH = 150;
+const HEIGHT = 70;
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -16,28 +15,21 @@ function App() {
   useEffect(() => {
     document.title = 'Fluid Simulation'
     const ctx = canvasRef.current?.getContext('2d');
-    const simState: SimulationState = {
-      width: WIDTH,
-      height: HEIGHT,
-      dye: new Array(WIDTH).fill(0).map(() => new Float32Array(HEIGHT)),
-      density: new Array(WIDTH).fill(0).map(() => new Float32Array(HEIGHT)),
-      velocity: new Array(WIDTH).fill(0).map(() => new Float32Array(HEIGHT)),
-    }
+    const simulation = new Simulation(WIDTH, HEIGHT, 5);
       
     setInterval(() => {
-      console.log('Starting simulation');
-      simulate(simState);
+      simulation.step();
 
       if (ctx) {
-        draw(ctx, simState.dye);
+        draw(ctx, simulation.getState().velocity);
       }
-    }, 1000 / 60);
+    }, 1000 / 20);
   }, [])
 
   return (
     <>
       <h1>Fluid Simulation</h1>
-      <Canvas canvasRef={canvasRef} width={WIDTH} height={HEIGHT} />
+      <Canvas canvasRef={canvasRef} width={WIDTH*10} height={HEIGHT*10} />
     </>
   )
 }

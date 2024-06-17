@@ -37,11 +37,11 @@ class Simulation {
     }
 
     for (let i = 0; i < width; i++) {
-    for (let j = 1; j < height; j++) {
-      if (i % 10 === 0) {
-        this.simulationState.velocity[i][j].left = 15000;
+      for (let j = 1; j < height - 1; j++) {
+        if (i % 10 === 0) {
+          this.simulationState.velocity[i][j].left = 15000;
+        }
       }
-    }
     }
   }
 
@@ -78,6 +78,8 @@ class Simulation {
         }
       }
     }
+
+    this.advect();
   }
 
   public applyGravity() {
@@ -92,17 +94,43 @@ class Simulation {
     return this.simulationState;
   }
 
-  public advect() {
+  public resetNextVelocity() {
+    // Simple nested loop to avoid unnecessary copies
     for (let i = 0; i < this.width - 1; i++) {
       for (let j = 0; j < this.height - 1; j++) {
         this.simulationState.nextVelocity[i][j].left = this.simulationState.velocity[i][j].left;
         this.simulationState.nextVelocity[i][j].top = this.simulationState.velocity[i][j].top;
       }
     }
-
-    
   }
 
+  public updateVelocity() {
+    // Simple nested loop to avoid unnecessary copies
+    for (let i = 0; i < this.width - 1; i++) {
+      for (let j = 0; j < this.height - 1; j++) {
+        this.simulationState.velocity[i][j].left = this.simulationState.nextVelocity[i][j].left;
+        this.simulationState.velocity[i][j].top = this.simulationState.nextVelocity[i][j].top;
+      }
+    }
+  }
+
+  public advect() {
+    this.resetNextVelocity();
+
+    for (let i = 1; i < this.width; i++) {
+      for (let j = 1; i < this.height; j++) {
+        if (this.simulationState.map[i][j] === 0) {
+          continue;
+        }
+        //if (this.simulationState.map[i - 1][j] != 0) {
+          //const x = i - this.simulationState.velocity[i][j].left * DELTA_T;
+        //}
+          
+      }
+    }
+
+    this.updateVelocity();
+  }
 }
 
 export default Simulation;

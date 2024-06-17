@@ -6,8 +6,8 @@ import Simulation from './simulation'
 import { draw } from './utils'
 import Canvas from './Canvas'
 
-const WIDTH = 150;
-const HEIGHT = 70;
+const WIDTH = 300;
+const HEIGHT = 150;
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,7 +29,7 @@ function App() {
   return (
     <>
       <h1>Fluid Simulation</h1>
-      <Canvas canvasRef={canvasRef} width={WIDTH*10} height={HEIGHT*10} />
+      <Canvas canvasRef={canvasRef} width={WIDTH*4} height={HEIGHT*4} />
     </>
   )
 }

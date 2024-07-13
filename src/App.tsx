@@ -6,8 +6,8 @@ import { draw } from './utils'
 import Canvas from './Canvas'
 import styles from './App.module.css'
 
-const WIDTH = 300;
-const HEIGHT = 150;
+const WIDTH = 240;
+const HEIGHT = 135;
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -15,7 +15,7 @@ function App() {
   useEffect(() => {
     document.title = 'Fluid Simulation'
     const ctx = canvasRef.current?.getContext('2d');
-    const simulation = new Simulation(WIDTH, HEIGHT, 80);
+    const simulation = new Simulation(WIDTH, HEIGHT, 50);
       
     setInterval(() => {
       simulation.step();
@@ -23,7 +23,7 @@ function App() {
       if (ctx) {
         draw(ctx, simulation.getState().velocity);
       }
-    }, 1000 / 40);
+    }, 1000 / 60);
   }, [])
 
   return (

@@ -1,7 +1,30 @@
-import { SimulationState } from "./types";
+import { Cell, SimulationState } from "./types";
 
 const GRAVITY = 9.8;
 const DELTA_T = 1/60;
+
+function interpolate(inputX: number, inputY: number, cellWidth: number, cellHeight: number, velocityField: Cell[][], component: keyof Cell) {
+    const clampedX = Math.max(0, Math.min(inputX, (velocityField.length - 1) * cellWidth));
+    const clampedY = Math.max(0, Math.min(inputY, (velocityField[0].length - 1) * cellHeight));
+
+    const x0 = Math.floor(clampedX / cellWidth);
+    const x1 = Math.min(x0 + 1, velocityField.length - 1);
+    const y0 = Math.floor(clampedY / cellHeight);
+    const y1 = Math.min(y0 + 1, velocityField[0].length - 1);
+
+    const tx = (clampedX - x0 * cellWidth) / cellWidth;
+    const ty = (clampedY - y0 * cellHeight) / cellHeight;
+
+    const v00 = velocityField[x0][y0][component];
+    const v10 = velocityField[x1][y0][component];
+    const v01 = velocityField[x0][y1][component];
+    const v11 = velocityField[x1][y1][component];
+
+    const vx0 = v00 * (1 - tx) + v10 * tx;
+    const vx1 = v01 * (1 - tx) + v11 * tx;
+
+    return vx0 * (1 - ty) + vx1 * ty;
+}
 
 class Simulation {
   width: number;
@@ -41,13 +64,6 @@ class Simulation {
     }
 
     
-    for (let i = 20; i < 30; i++) {
-      for (let j = 20; j < 30; j++) {
-        //if (i % 10 === 0) {
-          this.simulationState.velocity[i][j].left = 15000;
-        //}
-      }
-    }
   }
 
   public step() {
@@ -100,21 +116,17 @@ class Simulation {
   }
 
   public resetNextVelocity() {
-    // Simple nested loop to avoid unnecessary copies
     for (let i = 0; i < this.width - 1; i++) {
       for (let j = 0; j < this.height - 1; j++) {
-        this.simulationState.nextVelocity[i][j].left = this.simulationState.velocity[i][j].left;
-        this.simulationState.nextVelocity[i][j].top = this.simulationState.velocity[i][j].top;
+        this.simulationState.nextVelocity[i][j] = { ...this.simulationState.velocity[i][j] };
       }
     }
   }
 
   public updateVelocity() {
-    // Simple nested loop to avoid unnecessary copies
     for (let i = 0; i < this.width - 1; i++) {
       for (let j = 0; j < this.height - 1; j++) {
-        this.simulationState.velocity[i][j].left = this.simulationState.nextVelocity[i][j].left;
-        this.simulationState.velocity[i][j].top = this.simulationState.nextVelocity[i][j].top;
+        this.simulationState.velocity[i][j] = { ...this.simulationState.nextVelocity[i][j] };
       }
     }
   }
@@ -123,44 +135,44 @@ class Simulation {
     this.resetNextVelocity();
 
     for (let i = 1; i < this.width - 1; i++) {
-      for (let j = 1; j < this.height - 1; j++) {
-        if (this.simulationState.map[i][j] === 0) {
-          continue;
+        for (let j = 1; j < this.height - 1; j++) {
+            if (this.simulationState.map[i][j] === 0) {
+                continue;
+            }
+
+            // calculate new horizontal velocity
+            if (this.simulationState.map[i - 1][j] !== 0) {
+                const horizontalVelocity = this.simulationState.velocity[i][j].left;
+
+                const verticalVelocity = (
+                    this.simulationState.velocity[i - 1][j].top + this.simulationState.velocity[i][j].top +
+                    this.simulationState.velocity[i - 1][j + 1].top + this.simulationState.velocity[i][j + 1].top
+                ) / 4;
+
+                const x = (this.cellWidth * i) - horizontalVelocity * DELTA_T;
+                const y = (this.cellHeight * j + this.cellHeight / 2) - verticalVelocity * DELTA_T;
+
+                this.simulationState.nextVelocity[i][j].left = interpolate(
+                    x, y, this.cellWidth, this.cellHeight, this.simulationState.velocity, 'left'
+                );
+            }
+
+            // calculate new vertical velocity
+            if (this.simulationState.map[i][j - 1] !== 0) {
+                const horizontalVelocity = (
+                    this.simulationState.velocity[i][j - 1].left + this.simulationState.velocity[i + 1][j - 1].left +
+                    this.simulationState.velocity[i][j].left + this.simulationState.velocity[i + 1][j].left
+                ) / 4;
+                const verticalVelocity = this.simulationState.velocity[i][j].top;
+
+                const x = (this.cellWidth * i + this.cellWidth / 2) - horizontalVelocity * DELTA_T;
+                const y = (this.cellHeight * j) - verticalVelocity * DELTA_T;
+
+                this.simulationState.nextVelocity[i][j].top = interpolate(
+                    x, y, this.cellWidth, this.cellHeight, this.simulationState.velocity, 'top'
+                );
+            }
         }
-
-        // calculate new horizontal velocity
-        if (this.simulationState.map[i - 1][j] !== 0) {
-          const horizontalVelocity = this.simulationState.velocity[i][j].left;
-
-          const verticalVelocity = (
-            this.simulationState.velocity[i- 1][j].top + this.simulationState.velocity[i][j].top + this.simulationState.velocity[i - 1][j + 1].top + this.simulationState.velocity[i][j + 1].top
-          ) / 4;
-
-          const x = (this.cellWidth * i) - horizontalVelocity * DELTA_T;
-          const y = (this.cellHeight * j + this.cellHeight / 2) - verticalVelocity * DELTA_T;
-          
-          const xIndex = Math.min(this.width - 1, Math.max(1, Math.round(x / this.cellWidth)));
-          const yIndex = Math.min(this.height - 1, Math.max(1, Math.round(y / this.cellHeight)));
-           
-          this.simulationState.nextVelocity[i][j].left = this.simulationState.velocity[xIndex][yIndex].left; 
-        }
-
-        // calculate new vertical velocity
-        if (this.simulationState.map[i][j - 1] !== 0) {
-          const horizontalVelocity = (
-            this.simulationState.velocity[i][j - 1].left + this.simulationState.velocity[i + 1][j - 1].left + this.simulationState.velocity[i][j].left + this.simulationState.velocity[i + 1][j].left
-          ) / 4;
-          const verticalVelocity = this.simulationState.velocity[i][j].top;
-          
-          const x = (this.cellWidth * i + this.cellWidth / 2) - horizontalVelocity * DELTA_T;
-          const y = (this.cellHeight * j) - verticalVelocity * DELTA_T;
-          
-          const xIndex = Math.min(this.width - 1, Math.max(1, Math.round(x / this.cellWidth)));
-          const yIndex = Math.min(this.height - 1, Math.max(1, Math.round(y / this.cellHeight)));
-          
-          this.simulationState.nextVelocity[i][j].top = this.simulationState.velocity[xIndex][yIndex].top;
-        }
-      }
     }
 
     this.updateVelocity();

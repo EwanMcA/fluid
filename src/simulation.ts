@@ -63,7 +63,13 @@ class Simulation {
       this.simulationState.map[i][height - 1] = 0;
     }
 
-    
+    const rect = document.querySelector('canvas')?.getBoundingClientRect() || { x: 0, y: 0 };
+    window.addEventListener('click', (e) => {
+      const x = (e.clientX - rect.x) / 5;
+      const y = (e.clientY - rect.y) / 5;
+      this.simulationState.velocity[Math.floor(x)+2][Math.floor(y)].left = 1000;
+      this.simulationState.velocity[Math.floor(x)-2][Math.floor(y)].left = -1000;
+    });
   }
 
   public step() {
@@ -104,9 +110,9 @@ class Simulation {
   }
 
   public applyGravity() {
-    for (let i = 1; i < this.width; i++) {
+    for (let i = 1; i < this.width - 1; i++) {
       for (let j = 1; j < this.height - 1; j++) {
-        this.simulationState.velocity[i][j].top -= GRAVITY * DELTA_T;
+        this.simulationState.velocity[i][j].top += GRAVITY * DELTA_T;
       }
     } 
   }

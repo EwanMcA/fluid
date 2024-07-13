@@ -1,4 +1,3 @@
-
 export const draw = (ctx: CanvasRenderingContext2D, field) => {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);

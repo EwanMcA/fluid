@@ -13,9 +13,9 @@ export const draw = (ctx: CanvasRenderingContext2D, field) => {
       for (let s = 0; s < scale; s++) {
         for (let t = 0; t < scale; t++) {
           const pixel = cell + s * 4 + t * fieldWidth * scale * 4
-          imageData.data[pixel] = value < 0 ? -1 * value : 0;
+          imageData.data[pixel] = value < 0 ? -1 * value * 1000: 0;
           imageData.data[pixel + 1] = 0;
-          imageData.data[pixel + 2] = value > 0 ? value : 0;
+          imageData.data[pixel + 2] = value > 0 ? value * 1000: 0;
           imageData.data[pixel + 3] = 255;
         }
       }

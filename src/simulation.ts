@@ -1,7 +1,7 @@
 import { Cell, SimulationState } from "./types";
 
 const GRAVITY = 9.8;
-const DELTA_T = 1/60;
+const DELTA_T = 1/200;
 
 function interpolate(inputX: number, inputY: number, cellWidth: number, cellHeight: number, velocityField: Cell[][], component: keyof Cell) {
     const clampedX = Math.max(0, Math.min(inputX, (velocityField.length - 1) * cellWidth));
@@ -61,6 +61,10 @@ class Simulation {
     for (let i = 0; i < width; i++) {
       this.simulationState.map[i][0] = 0;
       this.simulationState.map[i][height - 1] = 0;
+    }
+
+    for (let i = 0; i < height; i++) {
+      this.simulationState.velocity[2][i] = { left: 1000, top: 0 };
     }
 
     const rect = document.querySelector('canvas')?.getBoundingClientRect() || { x: 0, y: 0 };

@@ -1,6 +1,4 @@
-import { useEffect } from 'react';
-
-import { draw } from './utils';
+import { useEffect } from "react";
 
 const Canvas = ({ width, height, canvasRef }) => {
   useEffect(() => {
@@ -10,12 +8,12 @@ const Canvas = ({ width, height, canvasRef }) => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
       }
-    }
+    };
 
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener("resize", resizeCanvas);
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
-    }
+      window.removeEventListener("resize", resizeCanvas);
+    };
   }, []);
 
   return <canvas id="canvas" ref={canvasRef} width={width} height={height} />;

@@ -1,7 +1,7 @@
 import { Cell, SimulationState } from "./types";
 
 const GRAVITY = 9.8;
-const DELTA_T = 1 / 200;
+const DELTA_T = 1 / 100;
 
 function interpolate(
   inputX: number,
@@ -96,7 +96,13 @@ class Simulation {
     window.addEventListener("click", (e) => {
       const x = (e.clientX - rect.x) / 5;
       const y = (e.clientY - rect.y) / 5;
-      this.simulationState.dye[Math.floor(x) + 2][Math.floor(y)] = 10;
+      for (let i = -5; i < 5; i++) {
+        for (let j = -5; j < 5; j++) {
+          if (i*i + j*j > 32) continue;
+          this.simulationState.map[Math.floor(x) + i][Math.floor(y) + j] = 0;
+          this.simulationState.dye[Math.floor(x) + i][Math.floor(y) + j] = 0;
+        }
+      }
     });
   }
 

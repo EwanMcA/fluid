@@ -4,38 +4,18 @@ const GRAVITY = 9.8;
 const DELTA_T = 1 / 100;
 export const CELL_TO_PIXEL_RATIO = 5;
 
-function interpolate(
-  inputX: number,
-  inputY: number,
-  cellWidth: number,
-  cellHeight: number,
-  fieldWidth: number,
-  fieldHeight: number,
-  getter: (x: number, y: number) => number,
-): number {
-  const clampedX = Math.max(0, Math.min(inputX, (fieldWidth - 1) * cellWidth));
-  const clampedY = Math.max(
-    0,
-    Math.min(inputY, (fieldHeight - 1) * cellHeight),
-  );
+function getInterpolationWeights(
+  distanceFromLeft: number,
+  distanceFromTop: number,
+  width: number,
+  height: number,
+): InterpolationWeights {
+  const right = distanceFromLeft / width;
+  const left = 1 - right;
+  const bottom = distanceFromTop / height;
+  const top = 1 - bottom;
 
-  const cell_i = Math.floor(clampedX / cellWidth);
-  const next_cell_i = Math.min(cell_i + 1, fieldWidth - 1);
-  const cell_j = Math.floor(clampedY / cellHeight);
-  const next_cell_j = Math.min(cell_j + 1, fieldHeight - 1);
-
-  const ratio_adjacent_x = (clampedX - cell_i * cellWidth) / cellWidth;
-  const ratio_adjacent_y = (clampedY - cell_j * cellHeight) / cellHeight;
-
-  const f = getter(cell_i, cell_j);
-  const f_right = getter(next_cell_i, cell_j);
-  const f_down = getter(cell_i, next_cell_j);
-  const f_down_right = getter(next_cell_i, next_cell_j);
-
-  return (1 - ratio_adjacent_x) * (1 - ratio_adjacent_y) * f +
-    ratio_adjacent_x * (1 - ratio_adjacent_y) * f_right +
-    (1 - ratio_adjacent_x) * ratio_adjacent_y * f_down +
-    ratio_adjacent_x * ratio_adjacent_y * f_down_right;
+  return { left, right, bottom, top }; 
 }
 
 class Simulation {
@@ -107,24 +87,70 @@ class Simulation {
         }
       }
     });
+    this.addCurrent();
+
+    for (let i = 0; i < width; i++) {
+      for (let j = 0; j < height; j++) { 
+        const x = i - this.width / 3;
+        const y = j - this.height / 2;
+        if (Math.pow(x, 2) + Math.pow(y, 2) < 200) {
+          this.simulationState.map[i][j] = 0;
+        }
+      }
+    } 
+  }
+
+  public interpolate(
+    inputX: number,
+    inputY: number,
+    offsetX: number, // some fields are offset from the cell boundaries
+    offsetY: number,
+    getter: (x: number, y: number) => number,
+  ): number {
+    const clampedX = Math.max(this.cellWidth, Math.min(inputX, (this.width - 1) * this.cellWidth));
+    const clampedY = Math.max(
+      this.cellHeight,
+      Math.min(inputY, (this.height - 1) * this.cellHeight),
+    );
+
+    const cell_i = Math.floor((clampedX - offsetX) / this.cellWidth);
+    const next_cell_i = Math.min(cell_i + 1, this.width - 1);
+    const cell_j = Math.floor((clampedY - offsetY) / this.cellHeight);
+    const next_cell_j = Math.min(cell_j + 1, this.height - 1);
+
+    const weights = getInterpolationWeights(
+      clampedX - cell_i * this.cellWidth,
+      clampedY - cell_j * this.cellHeight,
+      this.cellWidth,
+      this.cellHeight,
+    );
+
+    const fieldTopLeft = getter(cell_i, cell_j);
+    const fieldTopRight = getter(next_cell_i, cell_j);
+    const fieldBottomLeft = getter(cell_i, next_cell_j);
+    const fieldBottomRight = getter(next_cell_i, next_cell_j);
+
+    return weights.left * weights.top * fieldTopLeft +
+      weights.right * weights.top * fieldTopRight +
+      weights.left * weights.bottom * fieldBottomLeft +
+      weights.right * weights.bottom * fieldBottomRight;
   }
 
   public addCurrent() {
-    for (let j = 1; j < this.height; j++) {
-      this.simulationState.velocity[2][j] = { left: 20, top: 0 };
+    for (let j = 1; j < this.height - 1; j++) {
+      this.simulationState.velocity[1][j].left = 5;
     }
   }
 
   public addDye() {
-    for (let i = Math.floor(this.height/3); i < Math.floor(this.height*2/3); i++) {
-      this.simulationState.dye[1][i] = 10;
+    for (let j = Math.floor(this.height/3); j < Math.floor(this.height*2/3) - 5; j++) {
+      this.simulationState.dye[1][j] = 5;
     }
   }
 
   public step() {
     //this.applyGravity();
-    //this.addDye();
-    this.addCurrent();
+    this.addDye();
     const velocity = this.simulationState.velocity;
     const map = this.simulationState.map;
     const relaxationFactor = 1.9;
@@ -222,13 +248,11 @@ class Simulation {
             this.cellHeight / 2 -
             verticalVelocity * DELTA_T;
 
-          this.simulationState.nextVelocity[i][j].left = interpolate(
+          this.simulationState.nextVelocity[i][j].left = this.interpolate(
             x,
             y,
-            this.cellWidth,
-            this.cellHeight,
-            this.width,
-            this.height,
+            0,
+            this.cellHeight / 2,
             (x: number, y: number) => this.simulationState.velocity[x][y].left,
           );
         }
@@ -249,13 +273,11 @@ class Simulation {
             horizontalVelocity * DELTA_T;
           const y = this.cellHeight * j - verticalVelocity * DELTA_T;
 
-          this.simulationState.nextVelocity[i][j].top = interpolate(
+          this.simulationState.nextVelocity[i][j].top = this.interpolate(
             x,
             y,
-            this.cellWidth,
-            this.cellHeight,
-            this.width,
-            this.height,
+            this.cellWidth / 2,
+            0,
             (x: number, y: number) => this.simulationState.velocity[x][y].top,
           );
         }
@@ -290,13 +312,11 @@ class Simulation {
           this.cellHeight / 2 -
           verticalVelocity * DELTA_T;
 
-        this.simulationState.dye[i][j] = interpolate(
+        this.simulationState.dye[i][j] = this.interpolate(
           x,
           y,
-          this.cellWidth,
-          this.cellHeight,
-          this.width,
-          this.height,
+          0,
+          0,
           (x: number, y: number) => this.simulationState.dye[x][y],
         );
       }

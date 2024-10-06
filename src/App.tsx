@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import Simulation from "./simulation";
+import Simulation, { CELL_TO_PIXEL_RATIO } from "./simulation";
 
 import { draw } from "./utils";
 import Canvas from "./Canvas";
@@ -29,7 +29,7 @@ function App() {
   return (
     <div className={styles.app_container}>
       <h1>Fluid Simulation</h1>
-      <Canvas canvasRef={canvasRef} width={WIDTH * 5} height={HEIGHT * 5} />
+      <Canvas canvasRef={canvasRef} width={WIDTH * CELL_TO_PIXEL_RATIO} height={HEIGHT * CELL_TO_PIXEL_RATIO} />
     </div>
   );
 }

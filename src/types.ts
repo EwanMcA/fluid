@@ -1,9 +1,8 @@
-export type Cell = { left: number, top: number };
-
 export type SimulationState = {
-  velocity: Cell[][];
-  nextVelocity: Cell[][];
-  density: Cell[][]
+  hVelocity: Float32Array[];
+  nextHVelocity: Float32Array[];
+  vVelocity: Float32Array[];
+  nextVVelocity: Float32Array[];
   dye: Float32Array[];
   map: Uint8Array[];
 };

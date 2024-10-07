@@ -27,20 +27,23 @@ class Simulation {
   private simulationState: SimulationState;
 
   constructor(width: number, height: number, velocityIterations: number) {
-    // for the offset grid we make an array of arrays, each element of which is an object with left and top properties
-    const velocity = Array.from({ length: width }, () =>
-      Array.from({ length: height }, () => ({ left: 0, top: 0 })),
+    const hVelocity: Float32Array[] = Array.from({ length: width }, () =>
+      new Float32Array(height).fill(0),
     );
-    const nextVelocity = Array.from({ length: width }, () =>
-      Array.from({ length: height }, () => ({ left: 0, top: 0 })),
+    const nextHVelocity: Float32Array[] = Array.from({ length: width }, () =>
+      new Float32Array(height).fill(0),
     );
-    const density = Array.from({ length: width }, () =>
-      Array.from({ length: height }, () => ({ left: 0, top: 0 })),
+    const vVelocity: Float32Array[] = Array.from({ length: width }, () =>
+      new Float32Array(height).fill(0),
     );
+    const nextVVelocity: Float32Array[] = Array.from({ length: width }, () =>
+      new Float32Array(height).fill(0),
+    );
+
 
     // for scalar quantities like dye, we just make an array of arrays of floats
     const dye: Float32Array[] = Array.from({ length: width }, () =>
-      new Float32Array(height).fill(0),
+      new Float32Array(height).fill(1.0),
     );
     const map: Uint8Array[] = Array.from({ length: width }, () =>
       new Uint8Array(height).fill(1),
@@ -54,9 +57,10 @@ class Simulation {
 
     this.simulationState = {
       dye,
-      velocity,
-      nextVelocity,
-      density,
+      hVelocity,
+      nextHVelocity,
+      vVelocity,
+      nextVVelocity,
       map,
     };
 
@@ -76,28 +80,28 @@ class Simulation {
       y: 0,
     };
     window.addEventListener("mousemove", (e) => {
-      const x = (e.clientX - rect.x) / CELL_TO_PIXEL_RATIO;
-      const y = (e.clientY - rect.y) / CELL_TO_PIXEL_RATIO;
+      const x = (e.clientX - rect.x) / 10;
+      const y = (e.clientY - rect.y) / 8;
       for (let i = -5; i < 6; i++) {
         for (let j = -5; j < 6; j++) {
           if (Math.pow(i, 2) + Math.pow(j, 2) > 32) continue;
           if (this.simulationState.map[Math.floor(x) + i][Math.floor(y) + j] === 1) {
-            this.simulationState.dye[Math.floor(x) + i][Math.floor(y) + j] = 15;
+            this.simulationState.dye[Math.floor(x) + i][Math.floor(y) + j] = 0;
           }
         }
       }
     });
-    this.addCurrent();
 
     for (let i = 0; i < width; i++) {
       for (let j = 0; j < height; j++) { 
-        const x = i - this.width / 3;
-        const y = j - this.height / 2;
-        if (Math.pow(x, 2) + Math.pow(y, 2) < 200) {
+        const x = i - width / 3;
+        const y = j - height / 2;
+        if (Math.pow(x, 2) + Math.pow(y, 2) < 75) {
           this.simulationState.map[i][j] = 0;
         }
       }
     } 
+    this.addCurrent();
   }
 
   public interpolate(
@@ -137,21 +141,25 @@ class Simulation {
   }
 
   public addCurrent() {
-    for (let j = 1; j < this.height - 1; j++) {
-      this.simulationState.velocity[1][j].left = 5;
+    for (let j = 0; j < this.height; j++) {
+      this.simulationState.hVelocity[1][j] = 2;
     }
   }
 
   public addDye() {
-    for (let j = Math.floor(this.height/3); j < Math.floor(this.height*2/3) - 5; j++) {
-      this.simulationState.dye[1][j] = 5;
-    }
+    this.simulationState.dye[1][40] = 0.0;
+    this.simulationState.dye[1][41] = 0.0;
+    this.simulationState.dye[1][42] = 0.0;
+    //for (let j = Math.floor(2 * this.height/5); j < Math.floor(4 * this.height/3); j++) {
+      //this.simulationState.dye[1][j] = 2;
+    //}
   }
 
   public step() {
     //this.applyGravity();
     this.addDye();
-    const velocity = this.simulationState.velocity;
+    const hVel = this.simulationState.hVelocity;
+    const vVel = this.simulationState.vVelocity;
     const map = this.simulationState.map;
     const relaxationFactor = 1.9;
 
@@ -171,17 +179,19 @@ class Simulation {
 
           // calculate fluid divergence
           const divergence =
-            velocity[i + 1][j].left -
-            velocity[i][j].left +
-            velocity[i][j + 1].top -
-            velocity[i][j].top;
+            hVel[i + 1][j] -
+            hVel[i][j] +
+            vVel[i][j + 1] -
+            vVel[i][j];
           const divergenceFactor = (divergence / openSides) * relaxationFactor;
 
-          // update velocities (zero out velocities leading into solid cells)
-          velocity[i][j].top += divergenceFactor * map[i][j - 1];
-          velocity[i][j].left += divergenceFactor * map[i - 1][j];
-          velocity[i + 1][j].left -= divergenceFactor * map[i + 1][j];
-          velocity[i][j + 1].top -= divergenceFactor * map[i][j + 1];
+          // update velocities 
+          // into cell
+          vVel[i][j] += divergenceFactor * map[i][j - 1];
+          hVel[i][j] += divergenceFactor * map[i - 1][j];
+          // out of cell
+          hVel[i + 1][j] -= divergenceFactor * map[i + 1][j];
+          vVel[i][j + 1] -= divergenceFactor * map[i][j + 1];
         }
       }
     }
@@ -193,7 +203,7 @@ class Simulation {
   public applyGravity() {
     for (let i = 1; i < this.width - 1; i++) {
       for (let j = 1; j < this.height - 1; j++) {
-        this.simulationState.velocity[i][j].top += GRAVITY * DELTA_T;
+        this.simulationState.vVel[i][j] += GRAVITY * DELTA_T;
       }
     }
   }
@@ -205,9 +215,8 @@ class Simulation {
   public resetNextVelocity() {
     for (let i = 0; i < this.width - 1; i++) {
       for (let j = 0; j < this.height - 1; j++) {
-        this.simulationState.nextVelocity[i][j] = {
-          ...this.simulationState.velocity[i][j],
-        };
+        this.simulationState.nextHVelocity[i][j] = this.simulationState.hVelocity[i][j];
+        this.simulationState.nextVVelocity[i][j] = this.simulationState.vVelocity[i][j];
       }
     }
   }
@@ -215,9 +224,8 @@ class Simulation {
   public updateVelocity() {
     for (let i = 0; i < this.width - 1; i++) {
       for (let j = 0; j < this.height - 1; j++) {
-        this.simulationState.velocity[i][j] = {
-          ...this.simulationState.nextVelocity[i][j],
-        };
+        this.simulationState.hVelocity[i][j] = this.simulationState.nextHVelocity[i][j];
+        this.simulationState.vVelocity[i][j] = this.simulationState.nextVVelocity[i][j];
       }
     }
   }
@@ -225,21 +233,21 @@ class Simulation {
   public advect() {
     this.resetNextVelocity();
 
-    for (let i = 1; i < this.width - 1; i++) {
-      for (let j = 1; j < this.height - 1; j++) {
+    for (let i = 1; i < this.width; i++) {
+      for (let j = 1; j < this.height; j++) {
         if (this.simulationState.map[i][j] === 0) {
           continue;
         }
 
         // calculate new horizontal velocity
-        if (this.simulationState.map[i - 1][j] !== 0) {
-          const horizontalVelocity = this.simulationState.velocity[i][j].left;
+        if (this.simulationState.map[i - 1][j] !== 0 && j < this.height - 1) {
+          const horizontalVelocity = this.simulationState.hVelocity[i][j];
 
           const verticalVelocity =
-            (this.simulationState.velocity[i - 1][j].top +
-              this.simulationState.velocity[i][j].top +
-              this.simulationState.velocity[i - 1][j + 1].top +
-              this.simulationState.velocity[i][j + 1].top) /
+            (this.simulationState.vVelocity[i - 1][j] +
+              this.simulationState.vVelocity[i][j] +
+              this.simulationState.vVelocity[i - 1][j + 1] +
+              this.simulationState.vVelocity[i][j + 1]) /
             4;
 
           const x = this.cellWidth * i - horizontalVelocity * DELTA_T;
@@ -248,24 +256,24 @@ class Simulation {
             this.cellHeight / 2 -
             verticalVelocity * DELTA_T;
 
-          this.simulationState.nextVelocity[i][j].left = this.interpolate(
+          this.simulationState.nextHVelocity[i][j] = this.interpolate(
             x,
             y,
             0,
             this.cellHeight / 2,
-            (x: number, y: number) => this.simulationState.velocity[x][y].left,
+            (x: number, y: number) => this.simulationState.hVelocity[x][y],
           );
         }
 
         // calculate new vertical velocity
-        if (this.simulationState.map[i][j - 1] !== 0) {
+        if (this.simulationState.map[i][j - 1] !== 0 && i < this.width - 1) {
           const horizontalVelocity =
-            (this.simulationState.velocity[i][j - 1].left +
-              this.simulationState.velocity[i + 1][j - 1].left +
-              this.simulationState.velocity[i][j].left +
-              this.simulationState.velocity[i + 1][j].left) /
+            (this.simulationState.hVelocity[i][j - 1] +
+              this.simulationState.hVelocity[i + 1][j - 1] +
+              this.simulationState.hVelocity[i][j] +
+              this.simulationState.hVelocity[i + 1][j]) /
             4;
-          const verticalVelocity = this.simulationState.velocity[i][j].top;
+          const verticalVelocity = this.simulationState.vVelocity[i][j];
 
           const x =
             this.cellWidth * i +
@@ -273,34 +281,43 @@ class Simulation {
             horizontalVelocity * DELTA_T;
           const y = this.cellHeight * j - verticalVelocity * DELTA_T;
 
-          this.simulationState.nextVelocity[i][j].top = this.interpolate(
+          this.simulationState.nextVVelocity[i][j] = this.interpolate(
             x,
             y,
             this.cellWidth / 2,
             0,
-            (x: number, y: number) => this.simulationState.velocity[x][y].top,
+            (x: number, y: number) => this.simulationState.vVelocity[x][y],
           );
         }
       }
     }
 
+    for (let i = 0; i < this.width; i++) {
+      for (let j = 0; j < this.height; j++) {
+        if (this.simulationState.map[i][j] === 0) {
+          this.simulationState.nextHVelocity[i][j] = 0;
+          this.simulationState.nextVVelocity[i][j] = 0;
+          this.simulationState.dye[i][j] = 0;
+        }
+      }
+    }
     this.updateVelocity();
   }
 
   public advectDye() {
-    for (let i = 1; i < this.width - 1; i++) {
-      for (let j = 1; j < this.height - 1; j++) {
+    for (let i = 0; i < this.width - 1; i++) {
+      for (let j = 0; j < this.height - 1; j++) {
         if (this.simulationState.map[i][j] === 0) {
           continue;
         }
 
         const horizontalVelocity =
-          (this.simulationState.velocity[i][j].left +
-            this.simulationState.velocity[i + 1][j].left) /
+          (this.simulationState.hVelocity[i][j] +
+            this.simulationState.hVelocity[i + 1][j]) /
           2;
         const verticalVelocity =
-          (this.simulationState.velocity[i][j].top +
-            this.simulationState.velocity[i][j + 1].top) /
+          (this.simulationState.vVelocity[i][j] +
+            this.simulationState.vVelocity[i][j + 1]) /
           2;
 
         const x =
@@ -315,8 +332,8 @@ class Simulation {
         this.simulationState.dye[i][j] = this.interpolate(
           x,
           y,
-          0,
-          0,
+          0.0,
+          0.0,
           (x: number, y: number) => this.simulationState.dye[x][y],
         );
       }

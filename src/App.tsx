@@ -6,8 +6,10 @@ import { draw } from "./utils";
 import Canvas from "./Canvas";
 import styles from "./App.module.css";
 
-const WIDTH = 240;
-const HEIGHT = 135;
+const WIDTH = 150;
+const HEIGHT = 100;
+const scaleX = 10;
+const scaleY = 8;
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -15,7 +17,7 @@ function App() {
   useEffect(() => {
     document.title = "Fluid Simulation";
     const ctx = canvasRef.current?.getContext("2d");
-    const simulation = new Simulation(WIDTH, HEIGHT, 50);
+    const simulation = new Simulation(WIDTH, HEIGHT, 75);
 
     setInterval(() => {
       simulation.step();
@@ -29,7 +31,7 @@ function App() {
   return (
     <div className={styles.app_container}>
       <h1>Fluid Simulation</h1>
-      <Canvas canvasRef={canvasRef} width={WIDTH * CELL_TO_PIXEL_RATIO} height={HEIGHT * CELL_TO_PIXEL_RATIO} />
+      <Canvas canvasRef={canvasRef} width={WIDTH*scaleX} height={HEIGHT*scaleY} />
     </div>
   );
 }

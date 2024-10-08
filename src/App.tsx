@@ -17,15 +17,17 @@ function App() {
   useEffect(() => {
     document.title = "Fluid Simulation";
     const ctx = canvasRef.current?.getContext("2d");
-    const simulation = new Simulation(WIDTH, HEIGHT, 75);
-
-    setInterval(() => {
+    const simulation = new Simulation(WIDTH, HEIGHT, 40);
+    const update = () => {
       simulation.step();
 
       if (ctx) {
         draw(ctx, simulation.getState().dye);
       }
-    }, 1000 / 60);
+      requestAnimationFrame(update);
+    };
+
+    update()
   }, []);
 
   return (

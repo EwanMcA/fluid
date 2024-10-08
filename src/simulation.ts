@@ -1,7 +1,7 @@
 import { SimulationState } from "./types";
 
 const GRAVITY = 9.8;
-const DELTA_T = 1 / 100;
+const DELTA_T = 1 / 120;
 export const CELL_TO_PIXEL_RATIO = 5;
 
 function getInterpolationWeights(
@@ -96,7 +96,7 @@ class Simulation {
       for (let j = 0; j < height; j++) { 
         const x = i - width / 3;
         const y = j - height / 2;
-        if (Math.pow(x, 2) + Math.pow(y, 2) < 75) {
+        if (Math.pow(x, 2) + Math.pow(y, 2) < 200) {
           this.simulationState.map[i][j] = 0;
         }
       }
@@ -164,8 +164,8 @@ class Simulation {
     const relaxationFactor = 1.9;
 
     for (let n = 0; n < this.velocityIterations; n++) {
-      for (let i = 1; i < this.width - 2; i++) {
-        for (let j = 1; j < this.height - 2; j++) {
+      for (let i = 1; i < this.width - 1; i++) {
+        for (let j = 1; j < this.height - 1; j++) {
           if (map[i][j] === 0) {
             continue;
           }
@@ -196,6 +196,15 @@ class Simulation {
       }
     }
 
+    // set edge velocities
+    for (let i = 0; i < this.width; i++) {
+      hVel[i][0] = hVel[i][1];
+      hVel[i][this.height - 1] = hVel[i][this.height - 2];
+    }
+    for (let j = 0; j < this.height; j++) {
+      vVel[0][j] = vVel[1][j];
+      vVel[this.width - 1][j] = vVel[this.width - 2][j];
+    }
     this.advect();
     this.advectDye();
   }
